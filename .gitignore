@@ -1,0 +1,30 @@
+# Byte-compiled / cache / virtual env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python virtualenv
+.venv/
+venv/
+ENV/
+
+# NVIDIA cache
+.nv/
+
+# Test files
+*test.py
+*test.ipynb
+
+# Docs folder
+/docs/

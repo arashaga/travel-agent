@@ -79,6 +79,7 @@ class FlightSearcher:
         max_layover_duration: int = None,
         include_airlines: List[str] = None,
         exclude_airlines: List[str] = None,
+        stops: int = None,  # NEW: number of stops
         currency: str = "USD",
         language: str = "en",
         country: str = "us",
@@ -106,15 +107,17 @@ class FlightSearcher:
             max_layover_duration (int): Maximum layover duration in minutes
             include_airlines (List[str]): List of airline codes to include
             exclude_airlines (List[str]): List of airline codes to exclude
+            stops (int): Number of stops (0=nonstop, 1=one stop, etc.)
             currency (str): Currency code (default: "USD")
             language (str): Language code (default: "en")
             country (str): Country code (default: "us")
             deep_search (bool): Enable deep search for more results
-            
+            auto_fetch_return_flights (bool): Fetch return flights for round-trip
+        
         Returns:
             Dict: Flight search results with enhanced round-trip formatting
         """        # Map trip type to API values (correct mapping)
-        type_mapping = {"one_way": 2, "round_trip": 1}
+        type_mapping = {"one_way": 2, "round_trip": 1, "round": 1}
         
         # Map travel class to API values
         class_mapping = {
@@ -135,60 +138,59 @@ class FlightSearcher:
             "hl": language,
             "gl": country,
         }
-        
         # Add trip type
         params["type"] = type_mapping.get(trip_type, 1)
-        
         # Handle return date for round-trip
         if trip_type == "round_trip":
             if not return_date:
                 raise ValueError("Return date is required for round-trip searches")
             params["return_date"] = return_date
         elif return_date and trip_type == "one_way":
-            # Warn if return date provided for one-way
             print("Warning: Return date ignored for one-way trip")
-        
         # Add travel class
         params["travel_class"] = class_mapping.get(travel_class, 1)
-        
         # Add passenger counts
         if adults > 0:
             params["adults"] = adults
         if children > 0:
             params["children"] = children
+        # Only send infants_in_seat if > 0
         if infants > 0:
             params["infants_in_seat"] = infants
-        
         # Add time ranges
         if departure_time_range:
             params["outbound_times"] = departure_time_range
         if return_time_range and trip_type == "round_trip":
             params["return_times"] = return_time_range
-        
         # Add layover duration
         if min_layover_duration and max_layover_duration:
             params["layover_duration"] = f"{min_layover_duration},{max_layover_duration}"
-        
         # Add price and duration filters
         if max_price:
             params["max_price"] = max_price
         if max_duration:
             params["max_duration"] = max_duration
-        
         # Add airline filters
         if include_airlines:
             params["include_airlines"] = ",".join(include_airlines)
         if exclude_airlines:
             params["exclude_airlines"] = ",".join(exclude_airlines)
-        
+        # Add stops filter (only valid values)
+        if stops is not None and stops in [0, 1, 2, 3]:
+            params["stops"] = stops
         # Add deep search
         if deep_search:
             params["deep_search"] = True
-        
+        # Print the final params for debugging
+        print(f"[FlightSearcher] Final API params: {params}")
         try:
             response = requests.get(self.base_url, params=params)
+            print(f"[FlightSearcher] API URL: {response.url}")
             response.raise_for_status()
             results = response.json()
+            # Print the raw API response if error
+            if 'error' in results:
+                print(f"[FlightSearcher] API error: {results['error']}")
             if trip_type == "round_trip" and auto_fetch_return_flights and "best_flights" in results:
                 outbound_params = {
                     "departure_id": departure_id.upper(),
@@ -215,8 +217,10 @@ class FlightSearcher:
                 results = self._fetch_all_return_combinations(results, outbound_params)
             return results
         except requests.RequestException as e:
+            print(f"[FlightSearcher] RequestException: {e}")
             return {"error": f"API request failed: {str(e)}"}
         except json.JSONDecodeError as e:
+            print(f"[FlightSearcher] JSONDecodeError: {e}")
             return {"error": f"Failed to parse API response: {str(e)}"}
 
     def _fetch_all_return_combinations(self, initial_results: Dict, outbound_params: dict = None) -> Dict:

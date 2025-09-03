@@ -4,11 +4,14 @@ __pycache__/
 *.pyo
 *.pyd
 
+
 # Environment variables - NEVER commit these!
 .env
 *.env
 .env.*
-
+env.local
+DEPLOY_AZURE_APP_SERVICE.md
+TODO.txt
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 

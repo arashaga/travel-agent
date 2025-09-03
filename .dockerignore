@@ -1,0 +1,28 @@
+# Start from an empty context; explicitly include only what the image needs
+*
+!.dockerignore
+!Dockerfile
+!requirements.txt
+!backend/**
+
+# Safety: never include real secrets
+.env
+**/.env
+
+# Common junk (kept for clarity; above * already excludes them unless whitelisted)
+.git/
+.gitignore
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+.venv/
+venv/
+notebooks/
+docs/
+.DS_Store
+Thumbs.db

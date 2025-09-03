@@ -83,7 +83,7 @@ def _build_agent_with_kernel(
 
 
 class TravelPlanningTerminationStrategy(TerminationStrategy):
-    def __init__(self, agents, maximum_iterations: int = 3):
+    def __init__(self, agents, maximum_iterations: int = 1):
         super().__init__(agents=agents, maximum_iterations=maximum_iterations)
 
     def _get_completion_keywords(self):
@@ -141,7 +141,7 @@ def _create_agents():
 def _create_group_chat():
     flight_agent, hotel_agent, coordinator_agent = _create_agents()
     termination_strategy = TravelPlanningTerminationStrategy(
-    agents=[coordinator_agent], maximum_iterations=10
+    agents=[coordinator_agent], maximum_iterations=1
     )
     group = AgentGroupChat(
         agents=[coordinator_agent, flight_agent, hotel_agent],

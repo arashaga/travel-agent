@@ -104,8 +104,22 @@ def create_app() -> FastAPI:
             "coordinator will",
         ]
         cleaned_lines = []
+        # State: skip content following section headers like '### Flights' or '### Hotels' until a blank line
+        skip_section = False
         for line in text.splitlines():
             s = line.strip()
+            # End skipping at blank line
+            if skip_section and s == "":
+                skip_section = False
+                continue
+            # Skip content while in a section skip
+            if skip_section:
+                continue
+            # Start skipping if we hit a section header
+            l = s.lower()
+            if l.startswith("### flights") or l.startswith("### hotels"):
+                skip_section = True
+                continue
             if not s:
                 cleaned_lines.append("")
                 continue
@@ -164,35 +178,23 @@ def create_app() -> FastAPI:
                     names.append("Unknown")
             logger.info("[%s] agent replies=%d from=%s", req_id, len(responses), names)
 
-            parts = []
-            # 1) Coordinator, if present
+            # Always prefer only the coordinator's latest message to keep a single clear response
             coord = latest_by_name.get(COORDINATOR_AGENT_NAME)
             if coord:
-                parts.append(coord)
-
-            # 2) Specialists (always include when available)
-            flight_text = latest_by_name.get(FLIGHT_AGENT_NAME)
-            hotel_text = latest_by_name.get(HOTEL_AGENT_NAME)
-            if flight_text:
-                parts.append("### Flights\n" + flight_text)
-            if hotel_text:
-                parts.append("### Hotels\n" + hotel_text)
-
-            # 3) Fallback to “last response” if truly nothing else
-            if not parts:
+                combined = coord.strip()
+            else:
+                # Fallback to last message text if coordinator is absent
                 if responses:
-                    # last raw line's text
                     last = responses[-1]
                     m = pattern.match(last)
-                    parts.append(m.group(2) if m else last)
+                    combined = (m.group(2) if m else last).strip()
                 else:
-                    parts.append("")
-            combined = "\n\n".join(parts).strip()
+                    combined = ""
             final_text = _sanitize_agent_output(combined)
             logger.info(
-                "[%s] final assembled sections: coord=%s flights=%s hotels=%s bytes=%d",
+                "[%s] final response: coord_present=%s bytes=%d",
                 req_id,
-                bool(coord), bool(flight_text), bool(hotel_text),
+                bool(coord),
                 len(final_text.encode("utf-8"))
             )
             logger.debug("[%s] final preview: %s", req_id, (final_text[:500] + "…") if len(final_text) > 500 else final_text)
@@ -229,7 +231,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health():
-        return {"status": "ok"}
+        return {"status": "ok", "build": "coord-only-v2"}
 
     return app
 

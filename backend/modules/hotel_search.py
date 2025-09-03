@@ -32,12 +32,14 @@ import json
 import requests
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
+from pathlib import Path
 
 class HotelSearcher:
     """A class to search for hotels using the SerpApi Google Hotels API with enhanced formatting."""
     
     def __init__(self, api_key: str = None):
-        load_dotenv()
+        dotenv_path = Path(__file__).resolve().parent / ".env"
+        load_dotenv(dotenv_path=dotenv_path, override=True)
         if api_key:
             self.api_key = api_key
         else:
@@ -62,8 +64,7 @@ class HotelSearcher:
         min_rating: float = None,
         max_rating: float = None,
         amenities: List[str] = None,
-        property_types: List[str] = None,
-        sort_by: str = None
+    property_types: List[str] = None
     ) -> Dict:
         """
         Search for hotels with specified parameters.
@@ -83,7 +84,6 @@ class HotelSearcher:
             max_rating (float): Maximum star rating
             amenities (List[str]): List of amenities to filter (e.g., ['wifi', 'pool'])
             property_types (List[str]): List of property types (e.g., ['hotel', 'apartment'])
-            sort_by (str): Sort order (e.g., 'price_low_to_high', 'rating_high_to_low')
         Returns:
             Dict: Hotel search results
         """
@@ -111,19 +111,42 @@ class HotelSearcher:
         if amenities:
             params["amenities"] = ",".join(amenities)
         if property_types:
-            params["property_type"] = ",".join(property_types)
-        if sort_by:
-            params["sort_by"] = sort_by
+            params["type"] = ",".join(property_types)
+    # Note: sort_by is intentionally not supported/passed to the API.
         try:
-            response = requests.get(self.base_url, params=params)
+            safe_params = dict(params)
+            if "api_key" in safe_params and isinstance(safe_params["api_key"], str):
+                k = safe_params["api_key"]
+                safe_params["api_key"] = (k[:4] + "..." + k[-4:]) if len(k) > 8 else "***"
+            print(f"[HotelSearcher] params: {safe_params}")      # <-- ADD 1
+            response = requests.get(self.base_url, params=params, timeout=60) 
+            print(f"[HotelSearcher] GET {response.url} -> {response.status_code}") 
             response.raise_for_status()
-            return response.json()
+
+            results = response.json()
+            # ADD: surface SerpAPI status + counts
+            meta = results.get("search_metadata", {}) or {}
+            status = meta.get("status")
+            sid = meta.get("id")
+            err = results.get("error")
+            props = len(results.get("properties") or [])
+            print(f"[HotelSearcher] serpapi status={status} id={sid} error={err} properties={props}")  # <-- ADD 3
+
+            if status != "Success" or err:
+                # Bubble an informative error so the agent shows a useful message
+                return {"error": f"SerpAPI error: status={status} err={err} id={sid}"}
+
+            return results
+
         except requests.exceptions.HTTPError as e:
-            # show the actual error payload — super helpful
             body = e.response.text if getattr(e, "response", None) is not None else ""
-            raise Exception(f"HTTP {e.response.status_code} for {response.url}\n{body}") from e
+            raise Exception(f"HTTP {getattr(e.response,'status_code','?')} for {response.url}\n{body}") from e
         except json.JSONDecodeError as e:
             return {"error": f"Failed to parse API response: {str(e)}"}
+        except Exception as e:
+            # ADD: catch everything else so the agent doesn’t just say “technical issue”
+            return {"error": f"Hotel search failed: {str(e)}"}    # <-- ADD 4
+
 
     def format_hotel_results(self, results: Dict) -> str:
         """

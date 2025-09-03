@@ -36,7 +36,7 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 from dotenv import load_dotenv
-
+from pathlib import Path
 
 class FlightSearcher:
     """A class to search for flights using the SerpApi Google Flights API with enhanced formatting."""
@@ -48,8 +48,8 @@ class FlightSearcher:
         Args:
             api_key (str): SerpApi API key. If not provided, will try to load from environment.
         """
-        load_dotenv()
-        
+        dotenv_path = Path(__file__).resolve().parent / ".env"
+        load_dotenv(dotenv_path=dotenv_path, override=True)
         if api_key:
             self.api_key = api_key
         else:
@@ -505,3 +505,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,6 +1,7 @@
 # Google Flights Search Tool
 
 A comprehensive Python tool for searching flights using the Google Flights API via SerpApi. Features **enhanced round-trip flight formatting** with clear separation of outbound and return flights, plus both command-line and Jupyter notebook interfaces.
+you can use this repo as a refrence to turn it into MCP https://github.com/Azure-Samples/azure-ai-travel-agents?tab=readme-ov-file#preview-the-application-locally-for-free
 
 ## ✨ Recent Improvements
 

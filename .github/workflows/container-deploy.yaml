@@ -16,9 +16,6 @@ env:
   IMAGE_NAME: travel-agent
   RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
   ACR_NAME: ${{ secrets.ACR_NAME }}
-  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
 jobs:
   staging:
@@ -30,32 +27,39 @@ jobs:
       APP_SERVICE_NAME: travel-mult-agent-staging
       IMAGE_TAG: ${{ github.sha }}-staging
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Azure login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: ACR login
         run: az acr login --name $ACR_NAME
+
       - name: Build image
-        run: docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+        run: |
+          docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+
       - name: Push image
-        run: docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
       - name: Set container
         run: |
           az webapp config container set \
             -g $RESOURCE_GROUP -n $APP_SERVICE_NAME \
             --docker-custom-image-name $REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
             --docker-registry-server-url https://$REGISTRY
+
       - name: Sync app settings
         run: |
           az webapp config appsettings set -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --settings \
             SERPAPI_API_KEY='${{ secrets.SERPAPI_API_KEY }}' \
             TRAVEL_AGENT_API_KEY='${{ secrets.TRAVEL_AGENT_API_KEY }}' \
             GRAPHRAG_API_KEY='${{ secrets.GRAPHRAG_API_KEY }}'
+
       - name: Health check
         run: |
           echo "Waiting 30s..."
@@ -77,32 +81,39 @@ jobs:
       APP_SERVICE_NAME: travel-mult-agent
       IMAGE_TAG: ${{ github.sha }}-prod
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Azure login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: ACR login
         run: az acr login --name $ACR_NAME
+
       - name: Build image
-        run: docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+        run: |
+          docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG -f Dockerfile .
+
       - name: Push image
-        run: docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+
       - name: Set container
         run: |
           az webapp config container set \
             -g $RESOURCE_GROUP -n $APP_SERVICE_NAME \
             --docker-custom-image-name $REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
             --docker-registry-server-url https://$REGISTRY
+
       - name: Sync app settings
         run: |
           az webapp config appsettings set -g $RESOURCE_GROUP -n $APP_SERVICE_NAME --settings \
             SERPAPI_API_KEY='${{ secrets.SERPAPI_API_KEY }}' \
             TRAVEL_AGENT_API_KEY='${{ secrets.TRAVEL_AGENT_API_KEY }}' \
             GRAPHRAG_API_KEY='${{ secrets.GRAPHRAG_API_KEY }}'
+
       - name: Health check
         run: |
           echo "Waiting 30s..."

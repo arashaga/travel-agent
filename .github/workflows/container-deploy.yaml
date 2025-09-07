@@ -29,7 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+      - name: Debug AZURE_CREDENTIALS length
+        run: |
+          echo "${{ secrets.AZURE_CREDENTIALS }}" | python -c "import sys,json; d=sys.stdin.read().strip(); print('Chars:', len(d)); json.loads(d); print('JSON OK')"
       - name: Azure login
         uses: azure/login@v2
         with:

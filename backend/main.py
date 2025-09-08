@@ -117,7 +117,7 @@ def create_app() -> FastAPI:
                 continue
             # Start skipping if we hit a section header
             l = s.lower()
-            if l.startswith("### flights") or l.startswith("### hotels"):
+            if l.startswith("### Flights") or l.startswith("### Hotels"):
                 skip_section = True
                 continue
             if not s:
@@ -173,6 +173,7 @@ def create_app() -> FastAPI:
                     
                     name, text = m.group(1), m.group(2)
                     latest_by_name[name] = text
+                    print("name: ", name, "text: ",  text)
                     names.append(name)
                 else:
                     names.append("Unknown")

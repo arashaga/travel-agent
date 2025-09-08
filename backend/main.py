@@ -20,7 +20,7 @@ if __package__ is None or __package__ == "":
 
 # Local imports
 from backend.services.agents import TravelConversationManagerFactory
-from backend.settings.instructions import COORDINATOR_AGENT_NAME, FLIGHT_AGENT_NAME, HOTEL_AGENT_NAME
+from backend.settings.instructions import COORDINATOR_AGENT_NAME, FLIGHT_AGENT_NAME, HOTEL_AGENT_NAME, AGGREGATOR_AGENT_NAME
 from backend.settings.logging import get_logger
 logger = get_logger("travel.api")
 
@@ -87,7 +87,7 @@ def create_app() -> FastAPI:
         text = re.sub(r"\[ *delegate:.*?\]\s*", "", text, flags=re.IGNORECASE)
         # Remove bracketed agent tags like [FlightSpecialist], [HotelSpecialist]
         # Use simple replacements for known agent names
-        for tag in (FLIGHT_AGENT_NAME, HOTEL_AGENT_NAME, COORDINATOR_AGENT_NAME):
+        for tag in (FLIGHT_AGENT_NAME, HOTEL_AGENT_NAME, COORDINATOR_AGENT_NAME, AGGREGATOR_AGENT_NAME):
             text = re.sub(rf"\[\s*{re.escape(tag)}\s*\]", "", text)
 
         # Drop lines that look like internal process chatter
@@ -179,12 +179,15 @@ def create_app() -> FastAPI:
                     names.append("Unknown")
             logger.info("[%s] agent replies=%d from=%s", req_id, len(responses), names)
 
-            # Always prefer only the coordinator's latest message to keep a single clear response
+            # Always prefer aggregator first, then coordinator's latest message to keep a single clear response
+            aggregator = latest_by_name.get(AGGREGATOR_AGENT_NAME)
             coord = latest_by_name.get(COORDINATOR_AGENT_NAME)
-            if coord:
+            if aggregator:
+                combined = aggregator.strip()
+            elif coord:
                 combined = coord.strip()
             else:
-                # Fallback to last message text if coordinator is absent
+                # Fallback to last message text if neither aggregator nor coordinator are present
                 if responses:
                     last = responses[-1]
                     m = pattern.match(last)
@@ -193,8 +196,9 @@ def create_app() -> FastAPI:
                     combined = ""
             final_text = _sanitize_agent_output(combined)
             logger.info(
-                "[%s] final response: coord_present=%s bytes=%d",
+                "[%s] final response: aggregator_present=%s coord_present=%s bytes=%d",
                 req_id,
+                bool(aggregator),
                 bool(coord),
                 len(final_text.encode("utf-8"))
             )

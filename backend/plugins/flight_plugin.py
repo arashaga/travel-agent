@@ -21,6 +21,44 @@ class FlightSearchPlugin:
             "premium": "premium_economy",
             "coach": "economy",
         }
+        
+        # Airport/City code mapping to fix common issues like PAR -> CDG
+        self.airport_codes = {
+            # Fix common issues
+            "par": "CDG",  # Paris should be CDG, not PAR
+            "paris": "CDG",
+            "london": "LHR",
+            "nyc": "JFK",
+            "new york": "JFK",
+            "la": "LAX",
+            "los angeles": "LAX",
+            "sf": "SFO",
+            "san francisco": "SFO",
+            "chicago": "ORD",
+            "miami": "MIA",
+            "boston": "BOS",
+            "washington": "DCA",
+            "dc": "DCA",
+            "seattle": "SEA",
+            "denver": "DEN",
+            "atlanta": "ATL",
+            "dallas": "DFW",
+            "houston": "IAH",
+            "austin": "AUS",
+            "las vegas": "LAS",
+            "vegas": "LAS",
+            "rome": "FCO",
+            "madrid": "MAD",
+            "barcelona": "BCN",
+            "milan": "MXP",
+            "amsterdam": "AMS",
+            "frankfurt": "FRA",
+            "munich": "MUC",
+            "tokyo": "NRT",
+            "dubai": "DXB",
+            "singapore": "SIN",
+            "hong kong": "HKG",
+        }
         self.airline_codes = {
             "american": "AA",
             "united": "UA",

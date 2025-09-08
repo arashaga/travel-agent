@@ -18,6 +18,8 @@ from ..settings.instructions import (
     HOTEL_AGENT_INSTRUCTIONS,
     COORDINATOR_AGENT_NAME,
     COORDINATOR_AGENT_INSTRUCTIONS,
+    AGGREGATOR_AGENT_NAME,
+    AGGREGATOR_AGENT_INSTRUCTIONS,
 )
 from ..settings.config import (
     deployment_name,
@@ -135,16 +137,21 @@ def _create_agents():
         name=COORDINATOR_AGENT_NAME,
         instructions=COORDINATOR_AGENT_INSTRUCTIONS,
     )
-    return flight_agent, hotel_agent, coordinator_agent
+    aggregator_agent = _build_agent_with_kernel(
+        service_id="travel_aggregator",
+        name=AGGREGATOR_AGENT_NAME,
+        instructions=AGGREGATOR_AGENT_INSTRUCTIONS,
+    )
+    return flight_agent, hotel_agent, coordinator_agent, aggregator_agent
 
 
 def _create_group_chat():
-    flight_agent, hotel_agent, coordinator_agent = _create_agents()
+    flight_agent, hotel_agent, coordinator_agent, aggregator_agent = _create_agents()
     termination_strategy = TravelPlanningTerminationStrategy(
-    agents=[coordinator_agent], maximum_iterations=1
+    agents=[aggregator_agent], maximum_iterations=1
     )
     group = AgentGroupChat(
-        agents=[coordinator_agent, flight_agent, hotel_agent],
+        agents=[coordinator_agent, flight_agent, hotel_agent, aggregator_agent],
         termination_strategy=termination_strategy,
     )
     return group
